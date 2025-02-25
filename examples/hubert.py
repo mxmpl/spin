@@ -116,8 +116,12 @@ class ModelWrapper(nn.Module):
         )
         self.freeze_backbone(cfg.exclude_from_backbone_freeze)
 
-    def freeze_backbone(self, exclude: list[str]) -> None:
+    def train(self, mode: bool = True) -> "ModelWrapper":  # noqa: FBT001, FBT002
+        super().train(mode)
         self.backbone.eval()
+        return self
+
+    def freeze_backbone(self, exclude: list[str]) -> None:
         for name, param in self.backbone.named_parameters():
             if not any(name.startswith(n) for n in exclude):
                 param.requires_grad_(requires_grad=False)
@@ -132,12 +136,11 @@ def validate(model: ModelWrapper, loaders: dict[str, DataLoader], device: torch.
     model.eval()
     losses = {}
     for name, loader in loaders.items():
-        loss, n = torch.zeros(1, device=device, dtype=torch.float32), 0
+        loss = torch.zeros(1, device=device, dtype=torch.float32)
         with torch.no_grad():
             for wav, wav_len in loader:
                 loss += model(wav.to(device), wav_len.to(device)).mean()
-                n += 1
-        losses[name] = (loss / n).item()
+        losses[name] = (loss / len(loader)).item()
     model.train()
     return losses
 
@@ -151,7 +154,7 @@ def main(cfg: Config) -> None:
     dtype = getattr(torch, cfg.dtype)
     mixed_precision = cfg.dtype != "float32"
 
-    model = ModelWrapper(cfg).to(device)
+    model = ModelWrapper(cfg).train().to(device)
     opt = Adam(tuple(p for p in model.parameters() if p.requires_grad), lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = SequentialLR(
         opt,
@@ -185,7 +188,8 @@ def main(cfg: Config) -> None:
             pbar.update()
             step += 1
             if step % cfg.log_interval == 0:
-                infos = {"batch_size": wav.size(0), "loss": avg_loss.flush(), "lr": scheduler.get_last_lr()[0]}
+                lr = scheduler.get_last_lr()[0]  # Maybe shifted by 1 step but not important
+                infos = {"epoch": epoch, "batch_size": wav.size(0), "loss": avg_loss.flush(), "lr": lr}
                 wandb.log({f"train/{key}": val for key, val in infos.items()}, step=step)
                 pbar.set_postfix(loss=infos["loss"])
             if step % cfg.val_interval == 0:

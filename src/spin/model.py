@@ -65,16 +65,19 @@ class Spin(nn.Module):
         return self.codebook.out_features
 
     @torch.no_grad()
-    def extract_codebooks(self, x: torch.Tensor, *, hard: bool = False) -> torch.Tensor:
+    def extract_codebooks(self, x: torch.Tensor) -> torch.Tensor:
         x = self.head(x)
         x = F.normalize(x, p=2, dim=1)
         x = self.codebook(x)
-        if hard:
-            return torch.argmax(x, dim=1)
         return F.log_softmax(x / self.temperature, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute the loss. Input of shape (B, D), output of shape (B/2,)."""
+        """Compute the loss. Input of shape (2*B, D), output of shape (B,).
+
+        The batch is made like this:
+        [x^1_orig, x^1_perturb, x^2_orig, x^2_perturb, ..., x^B_orig, x^B_perturb]
+        """
+
         if x.size(0) % 2 != 0:
             raise ValueError("Batch size must be divisible by 2 to infer views.")
         if x.ndim != 2:
