@@ -52,9 +52,9 @@ class BySpeakerDataAugmentation:
         return change_gender(wav, sr, lo, hi, ratio_fs, ratio_ps, ratio_pr)
 
     def fixed_formant_f0(self, wav: Audio, sr: int, spk: str) -> Audio:
-        lo, hi = self.spk2info[spk]
-        if lo == 50:
-            lo = 75
+        gender = self.spk2info[spk]
+        lo, hi = LOW_HIGH[gender]
+        if gender == "M":
             ratio_fs, f0_med, ratio_pr = 1.2, 300, 1.2
         else:
             ratio_fs, f0_med, ratio_pr = 0.8, 100, 0.8

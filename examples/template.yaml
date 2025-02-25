@@ -1,0 +1,8 @@
+train_manifest: MANIFEST_DIR/train-clean-100.csv
+val_manifests:
+  dev-clean: MANIFEST_DIR/dev-clean.csv
+  dev-other: MANIFEST_DIR/dev-other.csv
+speaker_info: ../data/spk2info.json
+save_path: ./workdir
+wandb_project: hubert-spin
+wandb_name: default

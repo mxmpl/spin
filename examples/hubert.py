@@ -197,7 +197,9 @@ def main(cfg: Config) -> None:
                 break
         epoch += 1
 
-    torch.save(model.state_dict(), save_path / f"{cfg.wandb_name}.pt")
+    torch.save(model.state_dict(), save_path / f"{cfg.wandb_name}_full.pt")
+    torch.save(model.backbone.state_dict(), save_path / f"{cfg.wandb_name}_backbone.pt")
+    torch.save(model.spin.state_dict(), save_path / f"{cfg.wandb_name}_spin.pt")
     wandb.finish()
 
 
