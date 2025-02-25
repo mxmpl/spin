@@ -52,7 +52,6 @@ class Config:
     epsilon: float = 0.02
     temperature: float = 0.1
     sinkhorn_iters: int = 3
-    prob_ratio: float = 0.1
 
     exclude_from_backbone_freeze: list[str] = field(
         default_factory=lambda: [
@@ -112,7 +111,6 @@ class ModelWrapper(nn.Module):
             epsilon=cfg.epsilon,
             temperature=cfg.temperature,
             sinkhorn_iters=cfg.sinkhorn_iters,
-            prob_ratio=cfg.prob_ratio,
         )
         self.freeze_backbone(cfg.exclude_from_backbone_freeze)
 
@@ -196,9 +194,7 @@ def main(cfg: Config) -> None:
                 break
         epoch += 1
 
-    torch.save(model.state_dict(), save_path / f"{cfg.wandb_name}_full.pt")
-    torch.save(model.backbone.state_dict(), save_path / f"{cfg.wandb_name}_backbone.pt")
-    torch.save(model.spin.state_dict(), save_path / f"{cfg.wandb_name}_spin.pt")
+    torch.save(model.state_dict(), save_path / f"{cfg.wandb_name}.pt")
     wandb.finish()
 
 

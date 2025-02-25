@@ -48,7 +48,6 @@ class Spin(nn.Module):
         epsilon: float = 0.02,
         temperature: float = 0.1,
         sinkhorn_iters: int = 3,
-        prob_ratio: float = 0.1,
     ) -> None:
         super().__init__()
         self.head = nn.Linear(inp_dim, codebook_dim)
@@ -58,7 +57,6 @@ class Spin(nn.Module):
         self.epsilon = epsilon
         self.temperature = temperature
         self.sinkhorn_iters = sinkhorn_iters
-        self.prob_ratio = prob_ratio
 
     @property
     def codebook_size(self) -> int:
@@ -69,7 +67,7 @@ class Spin(nn.Module):
         x = self.head(x)
         x = F.normalize(x, p=2, dim=1)
         x = self.codebook(x)
-        return F.log_softmax(x / self.temperature, dim=1)
+        return F.softmax(x / self.temperature, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the loss. Input of shape (2*B, D), output of shape (B,).
@@ -90,8 +88,6 @@ class Spin(nn.Module):
         log_p1 = F.log_softmax(z1 / self.temperature, dim=1)
         log_p2 = F.log_softmax(z2 / self.temperature, dim=1)
         with torch.no_grad():
-            q1 = torch.lerp(z2, z1, self.prob_ratio)  # q1 = z1 * self.proba_ratio + z2 * (1 - self.proba_ratio)
-            q2 = torch.lerp(z1, z2, self.prob_ratio)
-            q1 = sinkhorn_knopp(q1, self.epsilon, self.sinkhorn_iters)
-            q2 = sinkhorn_knopp(q2, self.epsilon, self.sinkhorn_iters)
-        return -0.5 * ((q1 * log_p1).sum(dim=1) + (q2 * log_p2).sum(dim=1))
+            q1 = sinkhorn_knopp(z1, self.epsilon, self.sinkhorn_iters)
+            q2 = sinkhorn_knopp(z2, self.epsilon, self.sinkhorn_iters)
+        return -0.5 * ((q1 * log_p2).sum(dim=1) + (q2 * log_p1).sum(dim=1))
