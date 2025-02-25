@@ -10,6 +10,9 @@ from spin.effects import change_gender, change_gender_f0, params2sos
 type Audio = npt.NDArray[np.float32]
 
 
+LOW_HIGH = {"F": (100, 400), "M": (75, 250)}
+
+
 class BySpeakerDataAugmentation:
     def __init__(self, speaker_info: str | Path, seed: int = 0) -> None:
         with Path(speaker_info).open("r") as f:
@@ -19,10 +22,8 @@ class BySpeakerDataAugmentation:
         self.Qmin, self.Qmax = 2, 5
 
     def get_spk_info(self, spk: str) -> tuple[int, int]:
-        lo, hi = self.spk2info[spk]
-        if lo == 50:
-            lo = 75
-        if spk == "1447":
+        lo, hi = LOW_HIGH[self.spk2info[spk]]
+        if spk == "1447":  # WARNING: was harcoded this way in original spin repo
             lo, hi = 60, 400
         return lo, hi
 

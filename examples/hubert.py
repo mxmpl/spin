@@ -186,12 +186,12 @@ def main(cfg: Config) -> None:
             step += 1
             if step % cfg.log_interval == 0:
                 infos = {"batch_size": wav.size(0), "loss": avg_loss.flush(), "lr": scheduler.get_last_lr()[0]}
-                wandb.log({f"train/{key}": val for key, val in infos.items()})
+                wandb.log({f"train/{key}": val for key, val in infos.items()}, step=step)
                 pbar.set_postfix(loss=infos["loss"])
             if step % cfg.val_interval == 0:
                 pbar.set_description("Validation ongoing...")
                 val_losses = validate(model, val_loaders, device)
-                wandb.log({f"{key}/loss: {val}": val for key, val in val_losses.items()})
+                wandb.log({f"{key}/loss: {val}": val for key, val in val_losses.items()}, step=step)
                 pbar.set_description("Training")
             if step >= cfg.max_steps:
                 break

@@ -65,11 +65,13 @@ class Spin(nn.Module):
         return self.codebook.out_features
 
     @torch.no_grad()
-    def extract_codes(self, x: torch.Tensor) -> torch.Tensor:
+    def extract_codebooks(self, x: torch.Tensor, *, hard: bool = False) -> torch.Tensor:
         x = self.head(x)
         x = F.normalize(x, p=2, dim=1)
         x = self.codebook(x)
-        return torch.argmax(x, dim=1)
+        if hard:
+            return torch.argmax(x, dim=1)
+        return F.log_softmax(x / self.temperature, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the loss. Input of shape (B, D), output of shape (B/2,)."""

@@ -15,7 +15,14 @@ SAMPLE_RATE = 16_000
 
 class MaxLengthBatchSampler:
     def __init__(
-        self, *, lengths: list[int], max_length: int, cropped_length: int, shuffle: bool, drop_last: bool, seed: int
+        self,
+        lengths: list[int],
+        max_length: int,
+        cropped_length: int,
+        *,
+        shuffle: bool,
+        drop_last: bool,
+        seed: int,
     ) -> None:
         self.lengths = lengths
         self.max_length = max_length
@@ -146,7 +153,7 @@ def build_spin_dataloader(
     return DataLoader(
         dataset,
         batch_sampler=batch_sampler,
-        # persistent_workers=is_training,
+        persistent_workers=is_training and num_workers > 0,
         collate_fn=collate_fn,
         num_workers=num_workers,
     )
