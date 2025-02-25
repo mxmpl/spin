@@ -30,7 +30,7 @@ class FeatureExtractor(nn.Module):
         x = F.normalize(x, p=2, dim=1)
         x = self.spin.codebook(x)
         features.append(x)
-        x = F.log_softmax(x / self.spin.temperature, dim=1)
+        x = F.softmax(x / self.spin.temperature, dim=1)
         features.append(x)
         return features
 

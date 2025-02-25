@@ -116,11 +116,6 @@ class ModelWrapper(nn.Module):
         )
         self.freeze_backbone(cfg.exclude_from_backbone_freeze)
 
-    def train(self, mode: bool = True) -> "ModelWrapper":  # noqa: FBT001, FBT002
-        super().train(mode)
-        self.backbone.eval()
-        return self
-
     def freeze_backbone(self, exclude: list[str]) -> None:
         for name, param in self.backbone.named_parameters():
             if not any(name.startswith(n) for n in exclude):
