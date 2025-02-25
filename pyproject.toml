@@ -1,0 +1,48 @@
+[build-system]
+requires = ["flit_core>=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "spin"
+version = "0.1.0"
+description = "Minimal implementation of Spin"
+readme = "README.md"
+authors = [{ name = "Maxime Poli" }]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2.3",
+    "pandas>=2.2.3",
+    "praat-parselmouth>=0.4.5",
+    "scipy>=1.15.2",
+    "soundfile>=0.13.1",
+    "torch>=2.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "ipykernel>=6.29.5",
+    "ruff>=0.9.7",
+    "typos>=1.29.9",
+]
+example = [
+    "pyyaml>=6.0.2",
+    "torchaudio>=2.6.0",
+    "tqdm>=4.67.1",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.ruff]
+line-length = 119
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["PLR0913", "D", "N", "TRY", "EM", "COM812", "PLR2004", "T201", "S101"]
