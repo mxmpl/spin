@@ -1,9 +1,0 @@
-train_manifest: /lustre/fswork/projects/rech/iyn/uvw27yn/assets/manifests/train-clean-100.csv
-val_manifests:
-  dev-clean: /lustre/fswork/projects/rech/iyn/uvw27yn/assets/manifests/dev-clean.csv
-  dev-other: /lustre/fswork/projects/rech/iyn/uvw27yn/assets/manifests/dev-other.csv
-speaker_info: /lustre/fswork/projects/rech/iyn/uvw27yn/dev/spin/data/spk2info.json
-save_path: ./hubert_spin
-wandb_project: my-spin
-wandb_name: first-try
-dtype: float16

@@ -156,8 +156,8 @@ def main(cfg: Config) -> None:
     scheduler = SequentialLR(
         opt,
         [
-            LinearLR(opt, start_factor=cfg.lr_start_factor, end_factor=1),
-            LinearLR(opt, start_factor=1, end_factor=cfg.lr_end_factor),
+            LinearLR(opt, start_factor=cfg.lr_start_factor, end_factor=1, total_iters=cfg.warmup_steps),
+            LinearLR(opt, start_factor=1, end_factor=cfg.lr_end_factor, total_iters=cfg.max_steps - cfg.warmup_steps),
         ],
         [cfg.warmup_steps],
     )
@@ -191,7 +191,7 @@ def main(cfg: Config) -> None:
             if step % cfg.val_interval == 0:
                 pbar.set_description("Validation ongoing...")
                 val_losses = validate(model, val_loaders, device)
-                wandb.log({f"{key}/loss: {val}" for key, val in val_losses.items()})
+                wandb.log({f"{key}/loss: {val}": val for key, val in val_losses.items()})
                 pbar.set_description("Training")
             if step >= cfg.max_steps:
                 break

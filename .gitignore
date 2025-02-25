@@ -1,2 +1,4 @@
+*.yaml
 *.wav
+examples/workdir
 spin.egg-info
