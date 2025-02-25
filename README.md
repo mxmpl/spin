@@ -8,4 +8,4 @@
 - Modify "template.yaml" to add the paths to the manifests of train-clean-100, dev-clean and dev-other
   - Manifests should be CSV files with columns: "fileid", "path", "num_frames", "speaker"
 - Train HuBERT + spin on a machine with a single GPU: `python hubert.py template.yaml`. It should take less than 30 min.
-- Use the "compute_abx.py" script to extract features and compute the scores.
+- Use the "abx.py" script to extract features and compute the scores.
