@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.signal import sosfilt
 
-from spin.external import change_gender, change_gender_f0, params2sos
+from spin.effects import change_gender, change_gender_f0, params2sos
 
 type Audio = npt.NDArray[np.float32]
 

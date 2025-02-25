@@ -99,7 +99,7 @@ class AudioPretrainDataset(Dataset):
             wav = wav.mean(1)
         wav = wav.astype(np.float32)
         if self.random_crop_len > 0 and len(wav) > self.random_crop_len:
-            idx = self.rng.randint(0, len(wav) - self.random_crop_len)
+            idx = self.rng.integers(0, len(wav) - self.random_crop_len)
             wav = wav[idx : idx + self.random_crop_len]
         wavs = [wav, self.augment(wav, sr, str(spk), random=self.is_training)]
         wavs = [torch.FloatTensor(w) for w in wavs]

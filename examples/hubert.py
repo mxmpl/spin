@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import torch
+import wandb
 import yaml
 from torch import nn
 from torch.amp import GradScaler
@@ -23,22 +24,26 @@ class Config:
     val_manifests: dict[str, str]
     speaker_info: str
     save_path: str
-    seed: int = 0
 
+    wandb_project: str
+    wandb_name: str
+    wandb_mode: Literal["online", "offline", "disabled"] = "offline"
+
+    seed: int = 0
     log_interval: int = 100
     val_interval: int = 1000
 
     min_audio_len: int = 40_000
     max_audio_len: int = 1_000_000
     random_crop_len: int = 272_000
-    num_workers: int = 8
+    num_workers: int = 10
 
     max_steps: int = 5000
     lr: float = 1e-4
     weight_decay: float = 1e-6
     max_norm: int = 10
     warmup_steps: int = 2500
-    lr_start_factor: float = 0
+    lr_start_factor: float = 1e-12
     lr_end_factor: float = 0.01
     dtype: Literal["float16", "bfloat16", "float32"] = "bfloat16"
 
@@ -98,16 +103,16 @@ class AverageMeter:
 
 class ModelWrapper(nn.Module):
     def __init__(self, cfg: Config) -> None:
+        super().__init__()
         self.backbone = HUBERT_BASE.get_model()
-        inp_dim = self.backbone.encoder.feature_projection.out_features
         self.spin = Spin(
-            inp_dim=inp_dim,
-            codebook_dim=cfg.spin_codebook_dim,
-            codebook_size=cfg.spin_codebook_size,
-            epsilon=cfg.spin_epsilon,
-            temperature=cfg.spin_temperature,
-            sinkhorn_iters=cfg.spin_sinkhorn_iters,
-            prob_ratio=cfg.spin_prob_ratio,
+            inp_dim=self.backbone.encoder.feature_projection.projection.out_features,
+            codebook_dim=cfg.codebook_dim,
+            codebook_size=cfg.codebook_size,
+            epsilon=cfg.epsilon,
+            temperature=cfg.temperature,
+            sinkhorn_iters=cfg.sinkhorn_iters,
+            prob_ratio=cfg.prob_ratio,
         )
         self.freeze_backbone(cfg.exclude_from_backbone_freeze)
 
@@ -118,8 +123,9 @@ class ModelWrapper(nn.Module):
                 param.requires_grad_(requires_grad=False)
 
     def forward(self, wav: torch.Tensor, wav_len: torch.Tensor) -> torch.Tensor:
-        feats, _ = self.backbone(wav, wav_len)
-        return self.spin(feats)
+        x, _ = self.backbone(wav, wav_len)
+        x = x.view(x.shape[0] * x.shape[1], -1)
+        return self.spin(x)
 
 
 def validate(model: ModelWrapper, loaders: dict[str, DataLoader], device: torch.device) -> dict[str, float]:
@@ -129,7 +135,7 @@ def validate(model: ModelWrapper, loaders: dict[str, DataLoader], device: torch.
         loss, n = torch.zeros(1, device=device, dtype=torch.float32), 0
         with torch.no_grad():
             for wav, wav_len in loader:
-                loss += model(wav, wav_len).mean()
+                loss += model(wav.to(device), wav_len.to(device)).mean()
                 n += 1
         losses[name] = (loss / n).item()
     model.train()
@@ -137,16 +143,16 @@ def validate(model: ModelWrapper, loaders: dict[str, DataLoader], device: torch.
 
 
 def main(cfg: Config) -> None:
+    save_path = Path(cfg.save_path)
+    save_path.mkdir(exist_ok=True)
+    wandb.init(project=cfg.wandb_project, name=cfg.wandb_name, mode=cfg.wandb_mode, dir=save_path, config=cfg)
+
     device = torch.device("cuda")
     dtype = getattr(torch, cfg.dtype)
     mixed_precision = cfg.dtype != "float32"
 
     model = ModelWrapper(cfg).to(device)
-    opt = Adam(
-        tuple(p for p in model.parameters() if p.requires_grad),
-        lr=cfg.opt_lr,
-        weight_decay=cfg.weight_decay,
-    )
+    opt = Adam(tuple(p for p in model.parameters() if p.requires_grad), lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = SequentialLR(
         opt,
         [
@@ -179,16 +185,20 @@ def main(cfg: Config) -> None:
             pbar.update()
             step += 1
             if step % cfg.log_interval == 0:
-                pbar.set_postfix(loss=avg_loss.flush())
+                infos = {"batch_size": wav.size(0), "loss": avg_loss.flush(), "lr": scheduler.get_last_lr()[0]}
+                wandb.log({f"train/{key}": val for key, val in infos.items()})
+                pbar.set_postfix(loss=infos["loss"])
             if step % cfg.val_interval == 0:
+                pbar.set_description("Validation ongoing...")
                 val_losses = validate(model, val_loaders, device)
-                val_losses_str = "\t".join(f"{k}: {v:.3f}" for k, v in val_losses.items())
-                print(f"Validation loss at step {step}\t" + val_losses_str)
+                wandb.log({f"{key}/loss: {val}" for key, val in val_losses.items()})
+                pbar.set_description("Training")
             if step >= cfg.max_steps:
                 break
         epoch += 1
 
-    torch.save(model.state_dict(), cfg.save_path)
+    torch.save(model.state_dict(), save_path / f"{cfg.wandb_name}.pt")
+    wandb.finish()
 
 
 if __name__ == "__main__":
@@ -196,6 +206,6 @@ if __name__ == "__main__":
     parser.add_argument("config", type=Path)
     args = parser.parse_args()
 
-    with args.open() as f:
+    with args.config.open() as f:
         cfg = yaml.safe_load(f)
     main(Config(**cfg))

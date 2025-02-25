@@ -75,6 +75,8 @@ class Spin(nn.Module):
         """Compute the loss. Input of shape (B, D), output of shape (B/2,)."""
         if x.size(0) % 2 != 0:
             raise ValueError("Batch size must be divisible by 2 to infer views.")
+        if x.ndim != 2:
+            raise ValueError("Input should be 2D.")
 
         x = self.head(x)
         x = F.normalize(x, p=2, dim=1)
