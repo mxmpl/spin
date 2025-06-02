@@ -33,6 +33,7 @@ class Config:
     log_interval: int = 100
     val_interval: int = 1000
 
+    batch_len: int = 4_096_000
     min_audio_len: int = 40_000
     max_audio_len: int = 1_000_000
     random_crop_len: int = 272_000
@@ -65,6 +66,7 @@ def dataloader(manifest: str, cfg: Config, *, is_training: bool) -> DataLoader:
     return build_spin_dataloader(
         manifest,
         cfg.speaker_info,
+        batch_len=cfg.batch_len,
         min_audio_len=cfg.min_audio_len,
         max_audio_len=cfg.max_audio_len,
         random_crop_len=cfg.random_crop_len,

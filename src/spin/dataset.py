@@ -126,6 +126,7 @@ def build_spin_dataloader(
     manifest: str,
     speaker_info: str,
     *,
+    batch_len: int,
     min_audio_len: int,
     max_audio_len: int,
     random_crop_len: int,
@@ -144,7 +145,7 @@ def build_spin_dataloader(
     )
     batch_sampler = MaxLengthBatchSampler(
         lengths=dataset.lengths,
-        max_length=max_audio_len,
+        max_length=batch_len,
         cropped_length=random_crop_len,
         shuffle=is_training,
         drop_last=is_training,
