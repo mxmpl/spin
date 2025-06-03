@@ -78,13 +78,14 @@ class Spin(nn.Module):
 
         if x.size(0) % 2 != 0:
             raise ValueError("Batch size must be divisible by 2 to infer views.")
-        if x.ndim != 2:
-            raise ValueError("Input should be 2D.")
+        if x.ndim != 3:
+            raise ValueError("Input should be 3D.")
 
         x = self.head(x)
         x = F.normalize(x, p=2, dim=1)
         x = self.codebook(x)
         z1, z2 = x[::2], x[1::2]  # Split the batch by view
+        z1, z2 = z1.reshape(z1.size(0) * z1.size(1), -1), z2.reshape(z2.size(0) * z2.size(1), -1)
         log_p1 = F.log_softmax(z1 / self.temperature, dim=1)
         log_p2 = F.log_softmax(z2 / self.temperature, dim=1)
         with torch.no_grad():

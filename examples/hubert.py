@@ -123,7 +123,6 @@ class ModelWrapper(nn.Module):
 
     def forward(self, wav: torch.Tensor, wav_len: torch.Tensor) -> torch.Tensor:
         x, _ = self.backbone(wav, wav_len)
-        x = x.view(x.shape[0] * x.shape[1], -1)
         return self.spin(x)
 
 
